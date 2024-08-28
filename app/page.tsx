@@ -5,12 +5,13 @@ import { Menu } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/20/solid";
 import { CButton } from "@coreui/react";
 import CIcon from "@coreui/icons-react";
-import { cilCloudUpload, cilXCircle } from "@coreui/icons";
+import { cilCloudUpload } from "@coreui/icons";
 import { PDFDocument } from "pdf-lib";
 import { Worker, Viewer } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
+import { BiSolidXCircle } from "react-icons/bi";
 // import axios from "axios";
 
 const Main: React.FC = () => {
@@ -116,19 +117,16 @@ const Main: React.FC = () => {
             onClick={triggerFileInput}
           >
             <CIcon icon={cilCloudUpload} size="custom-size" className="w-20 h-20 text-white mb-2" />
-            <p className="text-center font-bold text-xl">Upload Your File Here (.pdf) </p>
+            <p className="text-center">Upload Your File Here (.Pdf only)</p>
             <input type="file" id="file-upload" onChange={handleFileChange} className="hidden" />
           </div>
-
         ) : (
           <div className="relative p-2 rounded bg-gray-800 w-full h-full flex flex-col justify-between">
-            <CIcon
-              icon={cilXCircle}
-              size="3xl"
-              className="absolute top-2 right-2 text-red-400 h-8 cursor-pointer"
-              onClick={handleResetFile}
-            />
-            <div className="p-4 border border-gray-600 rounded bg-gray-900 flex-grow">
+            <div className="relative p-4 border w-full border-gray-600 rounded bg-gray-900 flex-grow">
+              <BiSolidXCircle
+                className="absolute right-5 top-5 w-9 h-9 text-red-900 cursor-pointer"
+                onClick={handleResetFile}
+              />
               {selectedFile && <MyPDFViewer fileUrl={URL.createObjectURL(selectedFile)} />}
             </div>
             <div className="flex justify-between items-center mt-4">
@@ -155,11 +153,11 @@ const Main: React.FC = () => {
         <div className="flex flex-col mt-4">
           <Menu as="div" className="relative w-full">
             <Menu.Button className="bg-cyan-600 shadow-lg text-white px-4 py-2 rounded flex items-center justify-between hover:bg-cyan-500 w-full cursor-pointer">
-              <span className="flex-1 text-center">{selectedFileType}</span>
+              <span className="flex-1 pl-[29px] text-center">{selectedFileType}</span>
               <ChevronDownIcon className="w-5 h-5 ml-2" />
             </Menu.Button>
 
-            <Menu.Items className="absolute right-0 mt-2 origin-top-right w-full bg-gray-800 border border-gray-600 rounded shadow-lg">
+            <Menu.Items className="absolute right-0 bottom-full mb-2 w-48 origin-bottom-right shadow-lg bg-gray-800 border border-gray-600 rounded">
               <Menu.Item>
                 {({ active }) => (
                   <button
@@ -173,10 +171,10 @@ const Main: React.FC = () => {
               <Menu.Item>
                 {({ active }) => (
                   <button
-                    onClick={() => handleFileTypeChange("Resume")}
+                    onClick={() => handleFileTypeChange("Extract")}
                     className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}
                   >
-                    Resume
+                    Extract
                   </button>
                 )}
               </Menu.Item>
@@ -215,11 +213,11 @@ const Main: React.FC = () => {
 
       {/* Right Column: 75% */}
       <div className="bg-gray-900 text-white p-4 overflow-auto h-full" style={{ width: "75%" }}>
-        <div className="p-4 border border-gray-600 rounded bg-gray-900 h-full overflow-auto">
+        <div className="flex justify-center p-4 border border-gray-600 rounded bg-gray-900 w-full h-full overflow-auto">
           {!isFileUploaded ? (
-            <p>No file has been uploaded.</p>
+            <p className="flex items-center justify-center">No file has been uploaded.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="w-full grid grid-cols-5 border-white gap-6">
               {extractedData.length > 0 ? (
                 extractedData.map((content, index) => (
                   <div key={index} className="bg-gray-800 p-4 rounded shadow">
@@ -227,7 +225,7 @@ const Main: React.FC = () => {
                   </div>
                 ))
               ) : (
-                <p>No extracted content available.</p>
+                <p className="flex items-center justify-center">No extracted content available.</p>
               )}
             </div>
           )}
