@@ -22,6 +22,8 @@ const Main: React.FC = () => {
   const [fileContent, setFileContent] = useState<string>("");
   const [isFileUploaded, setIsFileUploaded] = useState<boolean>(false);
   const [extractedData, setExtractedData] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState<boolean>(false); // New loading state
+
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -75,6 +77,7 @@ const Main: React.FC = () => {
 
   const handleExtract = async () => {
     if (selectedFile) {
+      setLoading(true);
       try {
         const formData = new FormData();
         formData.append("input", selectedFile);
@@ -101,6 +104,8 @@ const Main: React.FC = () => {
         }
       } catch (error) {
         console.error("Error extracting data:", error);
+      } finally {
+        setLoading(false); // Stop loading
       }
     }
   };
@@ -169,77 +174,92 @@ const Main: React.FC = () => {
 
       </div>
 
-{/* Right Column: 75% */}
-<div className="flex flex-col items-center bg-gray-900 p-4 border-l border-gray-600 overflow-auto" style={{ width: "60%" }}>
-  <div className="w-full h-[73vh]">
-    {Object.keys(extractedData).length === 0 ? (
-      <p className=" flex justify-center items-center p-4 border border-gray-600 h-full">No file uploaded.</p>
-    ) : (
-      <div className="p-4 border border-gray-600 rounded bg-gray-900 h-full overflow-y-scroll">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-x-4">
-          {Object.entries(extractedData).map(([key, value]) => (
-            <div key={key} className="break-words mb-4 p-4 bg-gray-800 rounded shadow-md">
-              <h3 className="font-bold mb-2 text-lg underline underline-offset-4">{key}</h3>
-              <p className="text-justify overflow-hidden text-ellipsis">{value}</p>
+      {/* Right Column: 75% */}
+      <div className="flex flex-col items-center bg-gray-900 p-4 border-l border-gray-600 overflow-auto" style={{ width: "60%" }}>
+        <div className="w-full h-[73vh]">
+          {loading ? ( // Show loading spinner when loading
+            <div className="flex justify-center items-center h-full">
+              <TailSpin height="50" width="50" color="#00BFFF" ariaLabel="loading" />
             </div>
-          ))}
+          ) : Object.keys(extractedData).length === 0 ? (
+            <p className="flex justify-center items-center p-4 border border-gray-600 h-full">No file uploaded.</p>
+          ) : (
+            <div className="p-4 border border-gray-600 rounded bg-gray-900 h-full overflow-y-scroll">
+              {/* Display the heading only once */}
+              <div className="space-y-4">
+                {Object.entries(extractedData).map(([key, value]) => (
+                  <div key={key} className="flex items-center p-2 border border-gray-600 rounded bg-gray-800">
+                    {/* Variable */}
+                    <div className="flex-shrink-0 w-1/3">
+                      <h3 className="font-bold text-lg">{key}</h3>
+                    </div>
+                    {/* Value */}
+                    <div className="flex-1 ml-4">
+                      <p className="text-justify">
+                        {Array.isArray(value)
+                          ? value.join(", ") 
+                          : value} 
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+      {/* Buttons */}
+      <div className="flex flex-col mt-5 w-full">
+        <Menu as="div" className="relative w-full">
+          <Menu.Button className="bg-cyan-600 shadow-lg text-white px-4 py-2 rounded flex items-center justify-between hover:bg-cyan-500 w-full cursor-pointer">
+            <span className="flex-1 pl-[29px] text-center">{selectedFileType}</span>
+            <ChevronDownIcon className="w-5 h-5 ml-2" />
+          </Menu.Button>
+
+          <Menu.Items className="absolute right-0 bottom-full mb-2 w-48 origin-bottom-right shadow-lg bg-gray-800 border border-gray-600 rounded">
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={() => handleFileTypeChange("Card")}
+                  className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}
+                >
+                  Business Card
+                </button>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={() => handleFileTypeChange("Resume")}
+                  className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}
+                >
+                  Resume
+                </button>
+              )}
+            </Menu.Item>
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={() => handleFileTypeChange("Invoice")}
+                  className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}
+                >
+                  Invoice
+                </button>
+              )}
+            </Menu.Item>
+          </Menu.Items>
+        </Menu>
+
+        <CButton
+          className="bg-cyan-600 text-white w-full py-2 mt-4 rounded hover:bg-cyan-500 shadow-lg"
+          onClick={handleExtract}
+        >
+          Extract
+        </CButton>
       </div>
-    )}
-  </div>
-
-  {/* Buttons */}
-  <div className="flex flex-col mt-5 w-full">
-    <Menu as="div" className="relative w-full">
-      <Menu.Button className="bg-cyan-600 shadow-lg text-white px-4 py-2 rounded flex items-center justify-between hover:bg-cyan-500 w-full cursor-pointer">
-        <span className="flex-1 pl-[29px] text-center">{selectedFileType}</span>
-        <ChevronDownIcon className="w-5 h-5 ml-2" />
-      </Menu.Button>
-
-      <Menu.Items className="absolute right-0 bottom-full mb-2 w-48 origin-bottom-right shadow-lg bg-gray-800 border border-gray-600 rounded">
-        <Menu.Item>
-          {({ active }) => (
-            <button
-              onClick={() => handleFileTypeChange("Card")}
-              className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}
-            >
-              Business Card
-            </button>
-          )}
-        </Menu.Item>
-        <Menu.Item>
-          {({ active }) => (
-            <button
-              onClick={() => handleFileTypeChange("Resume")}
-              className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}
-            >
-              Resume
-            </button>
-          )}
-        </Menu.Item>
-        <Menu.Item>
-          {({ active }) => (
-            <button
-              onClick={() => handleFileTypeChange("Invoice")}
-              className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}
-            >
-              Invoice
-            </button>
-          )}
-        </Menu.Item>
-      </Menu.Items>
-    </Menu>
-
-    <CButton
-      className="bg-cyan-600 text-white w-full py-2 mt-4 rounded hover:bg-cyan-500 shadow-lg"
-      onClick={handleExtract}
-    >
-      Extract
-    </CButton>
-  </div>
-</div>
-</div>
-  );
+    </div>
+    </div >
+        );
 };
 
 export default Main;
