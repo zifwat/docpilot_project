@@ -13,6 +13,11 @@ import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import { BiSolidXCircle } from "react-icons/bi";
 import { TailSpin } from 'react-loader-spinner';
+import PdfComp from './PdfComp';
+import { pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+
 
 const Main: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -23,6 +28,7 @@ const Main: React.FC = () => {
   const [isFileUploaded, setIsFileUploaded] = useState<boolean>(false);
   const [extractedData, setExtractedData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<boolean>(false); // New loading state
+  const [pdfFile, setPdfFile] = useState<string | null>(null);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -30,6 +36,7 @@ const Main: React.FC = () => {
       setSelectedFile(file);
       await processPDF(file);
       setIsFileUploaded(true);
+      setPdfFile(URL.createObjectURL(file));
     }
   };
   
@@ -191,7 +198,7 @@ const Main: React.FC = () => {
                 className="absolute right-5 top-5 w-9 h-9 text-red-900 cursor-pointer"
                 onClick={handleResetFile}
               />
-              {selectedFile && <MyPDFViewer fileUrl={URL.createObjectURL(selectedFile)} />}
+              {selectedFile &&<PdfComp pdfFileUrl={pdfFile} currentpage={currentPage}/>}
             </div>
 
             <div className="flex justify-between items-center mt-4">
@@ -309,7 +316,7 @@ const Main: React.FC = () => {
       Extract
     </CButton>
   </div>
-</div>
+ </div>
       
     </div>
   );
