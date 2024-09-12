@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
       <div className="flex items-center justify-center">
         <p className='px-3 text-black text-sm font-semibold'>Property of</p>
         <Link className='flex' href="/">
-        <Image src={Logo} alt='altlogo ' className='items-center' width={98}/>
+        <Image src={Logo} alt='altlogo ' className='items-center' width={100}/>
         </Link>
       </div>
     </footer>
