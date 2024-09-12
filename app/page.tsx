@@ -258,7 +258,7 @@ const Main: React.FC = () => {
                       <PdfComp
                         pdfFileUrl={pdfFile}
                         currentpage={currentPage}
-                        // className="max-w-full h-9 object-contain rounded shadow-lg "
+                        // className="max-w-full h-9 object-contain rounded s hadow-lg "
                         // style={{
                         //   transform: `scale(40vh)`
                         // }}3555555
