@@ -1,30 +1,40 @@
 import { useEffect, useState, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
+import { ChevronRight, ChevronLeft } from 'lucide-react';
+
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
 
 function PdfComp(props) {
-  const [numPages, setNumPages] = useState();
-  const [currentPage, setCurrentPage] = useState(0); // Current page state
-  const [jpgUrl, setJpgUrl] = useState(null); // State for the current page's JPG URL
+  const [numPages, setNumPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [jpgUrl, setJpgUrl] = useState(null);
   const canvasRef = useRef();
+  const imageRef = useRef();
+  const [scale, setScale] = useState(0.8); // Default scale factor for PDF rendering
+  const [objectColorMap, setObjectColorMap] = useState({}); 
+
+  useEffect(() => {
+    if (props.boundingData && Object.keys(props.boundingData).length > 0 && jpgUrl) {
+      drawBoundingBoxes();
+    }
+  }, [props.boundingData, currentPage, jpgUrl]);
 
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
-    convertPdfToJpg(currentPage + 1); // Convert the first page (index +1 because PDF pages are 1-based)
+    convertPdfToJpg(currentPage + 1);
   }
 
-  // Function to convert a specific PDF page to a JPG
   const convertPdfToJpg = async (pageNumber) => {
     const loadingTask = pdfjs.getDocument(props.pdfFileUrl);
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(pageNumber);
 
-    const viewport = page.getViewport({ scale: 0.75 }); // Adjust the scale as needed
+    const viewport = page.getViewport({ scale });
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
 
     canvas.width = viewport.width;
-    canvas.height = viewport.height; 
+    canvas.height = viewport.height;
 
     const renderContext = {
       canvasContext: context,
@@ -33,75 +43,159 @@ function PdfComp(props) {
 
     await page.render(renderContext).promise;
     const jpgDataUrl = canvas.toDataURL("image/jpeg");
-    setJpgUrl(jpgDataUrl); // Set the current page's JPG URL
+    setJpgUrl(jpgDataUrl);
   };
 
-  // Navigate to the next page
   const handleNextPage = () => {
     if (currentPage < numPages - 1) {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
-      convertPdfToJpg(nextPage + 1); // Convert the next page (page number is 1-based)
+      convertPdfToJpg(nextPage + 1);
     }
   };
 
-  // Navigate to the previous page
   const handlePrevPage = () => {
     if (currentPage > 0) {
       const prevPage = currentPage - 1;
       setCurrentPage(prevPage);
-      convertPdfToJpg(prevPage + 1); // Convert the previous page (page number is 1-based)
+      convertPdfToJpg(prevPage + 1);
     }
   };
 
-  useEffect(() => {
-    console.log("PDF URL:", props.pdfFileUrl);
-  }, [props.pdfFileUrl]);
+  const getBoundingBoxStyle = (boundingPolygon) => {
+    const scaleFactor = 72 * scale; 
+
+    const xValues = boundingPolygon.map(point => point.x);
+    const yValues = boundingPolygon.map(point => point.y);
+
+    const minX = Math.min(...xValues);
+    const minY = Math.min(...yValues);
+    const maxX = Math.max(...xValues);
+    const maxY = Math.max(...yValues);
+
+    const width = maxX - minX;
+    const height = maxY - minY;
+
+    return {
+      left: `${minX * scaleFactor}px`,
+      top: `${minY * scaleFactor}px`,
+      width: `${width * scaleFactor}px`,
+      height: `${height * scaleFactor}px`,
+      zIndex: 10,
+      position: 'absolute',
+      border: '2px solid red',
+      pointerEvents: 'none',
+    };
+  };
+
+  const getRandomColor = () => {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    return `rgb(${r}, ${g}, ${b})`;
+  };
+
+  const drawBoundingBoxes = () => {
+    if (!props.boundingData || !jpgUrl) return;
+    removeExistingBoundingBoxes();
+
+    const newColorMap = { ...objectColorMap }; // Create a copy of the current color map
+
+    Object.entries(props.boundingData).forEach(([key, itemArray]) => {
+      const objectName = key.split('_')[0];
+
+      // Ensure the same color is used for all items of the same object
+      let objectColor;
+      if (!newColorMap[objectName]) {
+        objectColor = getRandomColor(); // Generate a new color if not assigned yet
+        newColorMap[objectName] = objectColor; // Store color for future use
+      } else {
+        objectColor = newColorMap[objectName]; // Use existing color
+      }
+
+      itemArray.forEach((item) => {
+        if (item.pageNumber === currentPage + 1 && item.polygon && item.polygon.length == 4) {
+          const boundingBoxStyle = getBoundingBoxStyle(item.polygon);
+
+          boundingBoxStyle.border = `2px solid ${objectColor}`;
+
+          const boundingBox = document.createElement('div');
+          boundingBox.className = "bounding-box";
+          Object.assign(boundingBox.style, boundingBoxStyle);
+
+          imageRef.current.parentElement.appendChild(boundingBox);
+        }
+      });
+    });
+
+    setObjectColorMap(newColorMap); // Update the state with the new color map
+  };
+
+  const removeExistingBoundingBoxes = () => {
+    const boundingBoxes = document.querySelectorAll('.bounding-box');
+    boundingBoxes.forEach(box => box.remove());
+  };
 
   return (
-    <div className="flex flex-col justify-center items-center">
-      <canvas ref={canvasRef} style={{ display: "none" }} /> {/* Hidden canvas */}
+    <div className="flex flex-col justify-center items-center h-full w-full">
+      <canvas ref={canvasRef} className="hidden" />
 
-      {jpgUrl ? (
-        <img
-          src={jpgUrl}
-          alt={`PDF page ${currentPage + 1} as JPG`}
-          className="w-auto h-auto max-w-full max-h-full object-contain mb-4"
-        />
-      ) : (
-        <Document
-          file={props.pdfFileUrl}
-          onLoadSuccess={onDocumentLoadSuccess}
-          className="flex items-center justify-center h-full w-full"
-        >
-          <Page
-            pageNumber={props.currentpage + 1}
-            renderTextLayer={false}
-            renderAnnotationLayer={false}
-            className="w-auto h-auto max-w-full max-h-full object-contain"
-          />
-        </Document>
-      )}
+      <div className="relative flex flex-col items-center justify-center w-full h-full overflow-hidden">
+        <div className="flex justify-between items-center w-full h-full">
+          {/* Left Arrow */}
+          <button
+            onClick={handlePrevPage}
+            disabled={currentPage === 0}
+            className="text-white rounded-md hover:bg-gray-500 transition-colors duration-200 flex items-center justify-center ml-4 h-20 w-20"
+          >
+            <ChevronLeft />
+          </button>
 
-      {/* Pagination controls */}
-      <div className="flex items-center justify-between w-full px-4 py-3 bg-gray-750 mt-4">
-        <button
-          onClick={handlePrevPage}
-          disabled={currentPage === 0}
-          className="bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-500 transition-colors duration-200"
-        >
-          Previous
-        </button>
-        <span className="text-gray-300 font-medium">
-          Page {currentPage + 1} of {numPages}
-        </span>
-        <button
-          onClick={handleNextPage}
-          disabled={currentPage === numPages - 1}
-          className="bg-cyan-600 text-white px-4 py-2 rounded-md hover:bg-cyan-500 transition-colors duration-200"
-        >
-          Next
-        </button>
+          {/* Document Preview */}
+          <div className="relative flex items-center justify-center w-auto h-auto">
+            {jpgUrl ? (
+              <>
+                <img
+                  ref={imageRef}
+                  src={jpgUrl}
+                  alt={`PDF page ${currentPage + 1} as JPG`}
+                  className="w-full h-full "
+                  style={{ transform: 'scale(1.0)' }}
+                  onLoad={drawBoundingBoxes}
+                />
+              </>
+            ) : (
+              <Document
+                file={props.pdfFileUrl}
+                onLoadSuccess={onDocumentLoadSuccess}
+                className="flex items-center justify-center h-full w-full"
+              >
+                <Page
+                  pageNumber={currentPage + 1}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                  className="w-auto h-auto object-contain"
+                />
+              </Document>
+            )}
+          </div>
+
+          {/* Right Arrow */}
+          <button
+            onClick={handleNextPage}
+            disabled={currentPage === numPages - 1}
+            className="text-white rounded-md hover:bg-gray-500 transition-colors duration-200 flex items-center justify-center mr-4 h-20 w-20"
+          >
+            <ChevronRight />
+          </button>
+        </div>
+
+        {/* Pagination Info */}
+        <div className="m-5 text-white">
+          <span>
+            Page {currentPage + 1} of {numPages}
+          </span>
+        </div>
       </div>
     </div>
   );
