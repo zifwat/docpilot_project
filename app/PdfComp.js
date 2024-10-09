@@ -1,51 +1,42 @@
 import { useEffect, useState, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronRight, ChevronLeft } from 'lucide-react';
-
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
-
 function PdfComp(props) {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [jpgUrl, setJpgUrl] = useState(null);
   const canvasRef = useRef();
   const imageRef = useRef();
-  const [scale, setScale] = useState(0.8); // Default scale factor for PDF rendering
-  const [objectColorMap, setObjectColorMap] = useState({}); 
+  const [scale, setScale] = useState(0.8);
+  const [objectColorMap, setObjectColorMap] = useState({});
 
   useEffect(() => {
     if (props.boundingData && Object.keys(props.boundingData).length > 0 && jpgUrl) {
       drawBoundingBoxes();
     }
   }, [props.boundingData, currentPage, jpgUrl]);
-
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
     convertPdfToJpg(currentPage + 1);
   }
-
   const convertPdfToJpg = async (pageNumber) => {
     const loadingTask = pdfjs.getDocument(props.pdfFileUrl);
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(pageNumber);
-
     const viewport = page.getViewport({ scale });
     const canvas = canvasRef.current;
     const context = canvas.getContext("2d");
-
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-
     const renderContext = {
       canvasContext: context,
       viewport: viewport,
     };
-
     await page.render(renderContext).promise;
     const jpgDataUrl = canvas.toDataURL("image/jpeg");
     setJpgUrl(jpgDataUrl);
   };
-
   const handleNextPage = () => {
     if (currentPage < numPages - 1) {
       const nextPage = currentPage + 1;
@@ -53,7 +44,6 @@ function PdfComp(props) {
       convertPdfToJpg(nextPage + 1);
     }
   };
-
   const handlePrevPage = () => {
     if (currentPage > 0) {
       const prevPage = currentPage - 1;
@@ -61,21 +51,16 @@ function PdfComp(props) {
       convertPdfToJpg(prevPage + 1);
     }
   };
-
   const getBoundingBoxStyle = (boundingPolygon) => {
-    const scaleFactor = 72 * scale; 
-
+    const scaleFactor = 72 * scale;
     const xValues = boundingPolygon.map(point => point.x);
     const yValues = boundingPolygon.map(point => point.y);
-
     const minX = Math.min(...xValues);
     const minY = Math.min(...yValues);
     const maxX = Math.max(...xValues);
     const maxY = Math.max(...yValues);
-
     const width = maxX - minX;
     const height = maxY - minY;
-
     return {
       left: `${minX * scaleFactor}px`,
       top: `${minY * scaleFactor}px`,
@@ -94,55 +79,41 @@ function PdfComp(props) {
     const b = Math.floor(Math.random() * 256);
     return `rgb(${r}, ${g}, ${b})`;
   };
-
   const drawBoundingBoxes = () => {
     if (!props.boundingData || !jpgUrl) return;
     removeExistingBoundingBoxes();
-
-    const newColorMap = { ...objectColorMap }; // Create a copy of the current color map
-
+    const newColorMap = { ...objectColorMap };
     Object.entries(props.boundingData).forEach(([key, itemArray]) => {
       const objectName = key.split('_')[0];
-
-      // Ensure the same color is used for all items of the same object
       let objectColor;
       if (!newColorMap[objectName]) {
-        objectColor = getRandomColor(); // Generate a new color if not assigned yet
-        newColorMap[objectName] = objectColor; // Store color for future use
+        objectColor = getRandomColor();
+        newColorMap[objectName] = objectColor;
       } else {
-        objectColor = newColorMap[objectName]; // Use existing color
+        objectColor = newColorMap[objectName];
       }
-
       itemArray.forEach((item) => {
         if (item.pageNumber === currentPage + 1 && item.polygon && item.polygon.length == 4) {
           const boundingBoxStyle = getBoundingBoxStyle(item.polygon);
-
           boundingBoxStyle.border = `2px solid ${objectColor}`;
-
           const boundingBox = document.createElement('div');
           boundingBox.className = "bounding-box";
           Object.assign(boundingBox.style, boundingBoxStyle);
-
           imageRef.current.parentElement.appendChild(boundingBox);
         }
       });
     });
-
-    setObjectColorMap(newColorMap); // Update the state with the new color map
+    setObjectColorMap(newColorMap);
   };
-
   const removeExistingBoundingBoxes = () => {
     const boundingBoxes = document.querySelectorAll('.bounding-box');
     boundingBoxes.forEach(box => box.remove());
   };
-
   return (
     <div className="flex flex-col justify-center items-center h-full w-full">
       <canvas ref={canvasRef} className="hidden" />
-
       <div className="relative flex flex-col items-center justify-center w-full h-full overflow-hidden">
         <div className="flex justify-between items-center w-full h-full">
-          {/* Left Arrow */}
           <button
             onClick={handlePrevPage}
             disabled={currentPage === 0}
@@ -150,8 +121,6 @@ function PdfComp(props) {
           >
             <ChevronLeft />
           </button>
-
-          {/* Document Preview */}
           <div className="relative flex items-center justify-center w-auto h-auto">
             {jpgUrl ? (
               <>
@@ -179,18 +148,13 @@ function PdfComp(props) {
               </Document>
             )}
           </div>
-
-          {/* Right Arrow */}
           <button
             onClick={handleNextPage}
             disabled={currentPage === numPages - 1}
-            className="text-white rounded-md hover:bg-gray-500 transition-colors duration-200 flex items-center justify-center mr-4 h-20 w-20"
-          >
+            className="text-white rounded-md hover:bg-gray-500 transition-colors duration-200 flex items-center justify-center mr-4 h-20 w-20">
             <ChevronRight />
           </button>
         </div>
-
-        {/* Pagination Info */}
         <div className="m-5 text-white">
           <span>
             Page {currentPage + 1} of {numPages}
@@ -200,5 +164,4 @@ function PdfComp(props) {
     </div>
   );
 }
-
 export default PdfComp;
