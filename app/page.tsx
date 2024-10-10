@@ -31,10 +31,11 @@ const Main: React.FC = () => {
   const [pdfFile, setPdfFile] = useState<string | null>(null);
   const [boundingData, setBoundingData] = useState<Record<string, any>>({});
   const getBoundingBoxStyle = ("");
-
+  
   const handleModalOpen = () => {
     setIsModalOpen(true);
   }
+
   const handleModalClose = () => {
     setIsModalOpen(false);
   };
@@ -197,6 +198,7 @@ const Main: React.FC = () => {
           ) : (
             <div className="rounded-lg bg-gray-800 h-full w-full ">
               <div className="grid grid-rows-[auto_1fr_auto] grid-cols-[auto_1fr_auto] h-full w-full">
+                {/* Top Row (Reset button) */}
                 <div className="col-span-3 flex justify-end p-2">
                   {selectedFile && (
                     <button
