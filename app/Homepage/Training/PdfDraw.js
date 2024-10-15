@@ -1,25 +1,77 @@
 import { useEffect, useState, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { PencilIcon } from '@heroicons/react/solid'; // Import PencilIcon if not already imported
+
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
-function PdfComp(props) {
+
+function PdfDraw(props) {
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [jpgUrl, setJpgUrl] = useState(null);
   const canvasRef = useRef();
   const imageRef = useRef();
   const [scale, setScale] = useState(0.8);
-  const [objectColorMap, setObjectColorMap] = useState({});
+  const [drawing, setDrawing] = useState(false);
+  const [drawnLines, setDrawnLines] = useState([]);
+  const [objectColorMap, setObjectColorMap] = useState({}); // Add this line to define objectColorMap
+
 
   useEffect(() => {
     if (props.boundingData && Object.keys(props.boundingData).length > 0 && jpgUrl) {
       drawBoundingBoxes();
     }
   }, [props.boundingData, currentPage, jpgUrl]);
+
+  useEffect(() => {
+    if (drawing) {
+      const canvas = canvasRef.current;
+      canvas.addEventListener('mousedown', startDrawing);
+      canvas.addEventListener('mousemove', draw);
+      canvas.addEventListener('mouseup', stopDrawing);
+      canvas.addEventListener('mouseout', stopDrawing);
+      
+      // Cleanup event listeners on unmount
+      return () => {
+        canvas.removeEventListener('mousedown', startDrawing);
+        canvas.removeEventListener('mousemove', draw);
+        canvas.removeEventListener('mouseup', stopDrawing);
+        canvas.removeEventListener('mouseout', stopDrawing);
+      };
+    }
+  }, [drawing]);
+
+  function startDrawing(e) {
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    context.beginPath();
+    context.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+    setDrawnLines(prev => [...prev, { x: e.clientX - rect.left, y: e.clientY - rect.top, isDrawing: true }]);
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    context.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    context.stroke();
+    setDrawnLines(prev => [...prev, { x: e.clientX - rect.left, y: e.clientY - rect.top, isDrawing: true }]);
+  }
+
+  function stopDrawing() {
+    const canvas = canvasRef.current;
+    const context = canvas.getContext("2d");
+    context.closePath();
+    setDrawing(false);
+  }
+
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
     convertPdfToJpg(currentPage + 1);
   }
+
   const convertPdfToJpg = async (pageNumber) => {
     const loadingTask = pdfjs.getDocument(props.pdfFileUrl);
     const pdf = await loadingTask.promise;
@@ -37,6 +89,7 @@ function PdfComp(props) {
     const jpgDataUrl = canvas.toDataURL("image/jpeg");
     setJpgUrl(jpgDataUrl);
   };
+
   const handleNextPage = () => {
     if (currentPage < numPages - 1) {
       const nextPage = currentPage + 1;
@@ -44,6 +97,7 @@ function PdfComp(props) {
       convertPdfToJpg(nextPage + 1);
     }
   };
+
   const handlePrevPage = () => {
     if (currentPage > 0) {
       const prevPage = currentPage - 1;
@@ -51,6 +105,7 @@ function PdfComp(props) {
       convertPdfToJpg(prevPage + 1);
     }
   };
+
   const getBoundingBoxStyle = (boundingPolygon) => {
     const scaleFactor = 72 * scale;
     const xValues = boundingPolygon.map(point => point.x);
@@ -73,16 +128,10 @@ function PdfComp(props) {
     };
   };
 
-  const getRandomColor = () => {
-    const r = Math.floor(Math.random() * 256);
-    const g = Math.floor(Math.random() * 256);
-    const b = Math.floor(Math.random() * 256);
-    return `rgb(${r}, ${g}, ${b})`;
-  };
   const drawBoundingBoxes = () => {
     if (!props.boundingData || !jpgUrl) return;
     removeExistingBoundingBoxes();
-    const newColorMap = { ...objectColorMap };
+    const newColorMap = { ...objectColorMap }; // Now this will be defined
     Object.entries(props.boundingData).forEach(([key, itemArray]) => {
       const objectName = key.split('_')[0];
       let objectColor;
@@ -93,7 +142,7 @@ function PdfComp(props) {
         objectColor = newColorMap[objectName];
       }
       itemArray.forEach((item) => {
-        if (item.pageNumber === currentPage + 1 && item.polygon && item.polygon.length == 4) {
+        if (item.pageNumber === currentPage + 1 && item.polygon && item.polygon.length === 4) {
           const boundingBoxStyle = getBoundingBoxStyle(item.polygon);
           boundingBoxStyle.border = `2px solid ${objectColor}`;
           const boundingBox = document.createElement('div');
@@ -105,10 +154,12 @@ function PdfComp(props) {
     });
     setObjectColorMap(newColorMap);
   };
+
   const removeExistingBoundingBoxes = () => {
     const boundingBoxes = document.querySelectorAll('.bounding-box');
     boundingBoxes.forEach(box => box.remove());
   };
+
   return (
     <div className="flex flex-col justify-center items-center h-full w-full">
       <canvas ref={canvasRef} className="hidden" />
@@ -160,8 +211,16 @@ function PdfComp(props) {
             Page {currentPage + 1} of {numPages}
           </span>
         </div>
+        {/* Draw Button */}
+        <button 
+          onClick={() => setDrawing(!drawing)} // Toggle drawing mode
+          className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg m-4"
+        >
+          <PencilIcon className="h-6 w-6 text-white" />
+        </button>
       </div>
     </div>
   );
 }
-export default PdfComp;
+
+export default PdfDraw;

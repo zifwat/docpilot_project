@@ -12,13 +12,7 @@ const Header: React.FC = () => {
         </Link>
       </div>
       <nav className="flex space-x-10">
-        <Link href="/tools" className="hover:text-white text-black font-semibold">
-          Tools
-        </Link>
-        <Link href="/help" className="hover:text-white text-black font-semibold">
-          Help
-        </Link>
-        <Link href="/signup" className="hover:text-white text-black font-semibold">
+        <Link href="/Authentication/SignUp" className="hover:text-white text-black font-semibold">
           Sign Up
         </Link>
         <Link href="/Authentication/Login" className="hover:text-white text-black font-semibold">
