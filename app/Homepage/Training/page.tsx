@@ -10,7 +10,7 @@ import { BiSolidXCircle } from "react-icons/bi";
 import PdfDraw from './PdfDraw';
 import { pdfjs } from 'react-pdf';
 import { PencilIcon } from '@heroicons/react/outline';
-import { ZoomInIcon, ZoomOutIcon, ScanIcon } from "lucide-react";
+import { ZoomInIcon, ZoomOutIcon, ScanIcon, Undo2, RotateCcw, Redo2 } from "lucide-react";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -27,12 +27,17 @@ const Main: React.FC = () => {
     const [error, setError] = useState("");
     const [pdfFile, setPdfFile] = useState<string | null>(null);
     const [boundingData, setBoundingData] = useState<Record<string, any>>({});
-    const [zoomLevel, setZoomLevel] = useState<number>(1);
+    const [zoomLevel, setZoomLevel] = useState(1.0);
     const [isDrawing, setIsDrawing] = useState(false);
-
-    const toggleDrawingMode = () => {
-        console.log('Toggled Drawing Mode');
-    };
+    const [pdfDrawFunctions, setPdfDrawFunctions] = useState({
+        handleZoomIn: () => { },
+        handleZoomOut: () => { },
+        toggleDrawingMode: () => { },
+        handleMouseZoom: () => { },
+        resetBoundingBoxes: () => { },
+        undoLastBox: () => { },
+        redoLastBox: () => { },
+    });
 
     const handleModalOpen = () => {
         setIsModalOpen(true);
@@ -52,13 +57,6 @@ const Main: React.FC = () => {
         }
     };
 
-    const handleZoomIn = () => {
-        setZoomLevel((prev) => Math.min(prev + 0.1, 3)); // Maximum zoom level 3
-    };
-
-    const handleZoomOut = () => {
-        setZoomLevel((prev) => Math.max(prev - 0.1, 0.5)); // Minimum zoom level 0.5
-    };
     const processPDF = async (file: File) => {
         console.log('Processing PDF...');
         const arrayBuffer = await file.arrayBuffer();
@@ -79,75 +77,70 @@ const Main: React.FC = () => {
         }
     };
 
-    const handleFileTypeChange = (fileType: string) => {
-        setSelectedFileType(fileType);
-        localStorage.setItem("selectedFileType", fileType);
-    };
-
     const triggerFileInput = () => {
         document.getElementById("file-upload")?.click();
     };
 
-    const handleExtract = async () => {
-        if (!selectedFile) {
-            setError("Please select a file");
-            handleModalOpen();
-            return;
-        }
-        if (!selectedFileType) {
-            setError("Please select a file type");
-            handleModalOpen();
-            return;
-        }
-        setLoading(true);
-        try {
-            const formData = new FormData();
-            formData.append("input", selectedFile);
-            formData.append("fileType", selectedFileType);
-            const response = await fetch("http://localhost:3002/api/send-document", {
-                method: "POST",
-                body: formData,
-            });
+    // const handleExtract = async () => {
+    //     if (!selectedFile) {
+    //         setError("Please select a file");
+    //         handleModalOpen();
+    //         return;
+    //     }
+    //     if (!selectedFileType) {
+    //         setError("Please select a file type");
+    //         handleModalOpen();
+    //         return;
+    //     }
+    //     setLoading(true);
+    //     try {
+    //         const formData = new FormData();
+    //         formData.append("input", selectedFile);
+    //         formData.append("fileType", selectedFileType);
+    //         const response = await fetch("http://localhost:3002/api/send-document", {
+    //             method: "POST",
+    //             body: formData,
+    //         });
 
-            if (response.ok) {
-                const data = await response.json();
-                const boundingData = data;
-                const newBoundingData: Record<string, any> = {};
-                Object.keys(data).forEach((key) => {
-                    if (key.includes("pageNumber") || key.includes("boundingRegion")) {
-                        newBoundingData[key] = data[key];
-                    }
-                });
-                setBoundingData(newBoundingData);
+    //         if (response.ok) {
+    //             const data = await response.json();
+    //             const boundingData = data;
+    //             const newBoundingData: Record<string, any> = {};
+    //             Object.keys(data).forEach((key) => {
+    //                 if (key.includes("pageNumber") || key.includes("boundingRegion")) {
+    //                     newBoundingData[key] = data[key];
+    //                 }
+    //             });
+    //             setBoundingData(newBoundingData);
 
-                const filteredData = Object.fromEntries(
-                    Object.entries(data)
-                        .filter(([key]) => key.endsWith("_value"))
-                        .map(([key, value]) => [key.replace(/_value/g, ""), value])
-                );
-                setExtractedData(filteredData);
-            } else {
-                setError("Failed to upload file");
-                handleModalOpen();
-            }
-        } catch (error) {
-            setError("Error extracting data");
-            handleModalOpen();
-        } finally {
-            setLoading(false);
-        }
-    };
+    //             const filteredData = Object.fromEntries(
+    //                 Object.entries(data)
+    //                     .filter(([key]) => key.endsWith("_value"))
+    //                     .map(([key, value]) => [key.replace(/_value/g, ""), value])
+    //             );
+    //             setExtractedData(filteredData);
+    //         } else {
+    //             setError("Failed to upload file");
+    //             handleModalOpen();
+    //         }
+    //     } catch (error) {
+    //         setError("Error extracting data");
+    //         handleModalOpen();
+    //     } finally {
+    //         setLoading(false);
+    //     }
+    // };
 
-    const handleFileDrop = async (event: React.DragEvent<HTMLDivElement>) => {
-        event.preventDefault();
-        const files = event.dataTransfer.files;
-        if (files && files[0]) {
-            const file = files[0];
-            setSelectedFile(file);
-            await processPDF(file);
-            setIsFileUploaded(true);
-        }
-    };
+    // const handleFileDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    //     event.preventDefault();
+    //     const files = event.dataTransfer.files;
+    //     if (files && files[0]) {
+    //         const file = files[0];
+    //         setSelectedFile(file);
+    //         await processPDF(file);
+    //         setIsFileUploaded(true);
+    //     }
+    // };
 
     const handleResetFile = () => {
         setSelectedFile(null);
@@ -161,29 +154,56 @@ const Main: React.FC = () => {
     return (
         <div className="flex flex-row justify-center gap-4 text-white h-[90.2vh] p-4">
             {/* Left Section */}
-            <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-lg shadow-xl h-[85vh] w-8%] m-2">
+            <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-lg shadow-xl h-[85vh] m-2">
                 <div className="p-4 text-center">
-                    <h2 className="text-lg font-semibold">Tools</h2>
+                    <h2 className="text-lg pt-5 font-semibold">Tools</h2>
                     <div className="flex flex-col gap-4 mt-4">
                         <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                            onClick={handleZoomIn}>
-                            <ZoomInIcon className="h-6 w-6 text-white"
-                            />
+                            onClick={pdfDrawFunctions.handleZoomIn}>
+                            <ZoomInIcon className="h-6 w-6 text-white" />
                         </button>
                         <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                            onClick={handleZoomOut} >
+                            onClick={pdfDrawFunctions.handleZoomOut} >
                             <ZoomOutIcon className="h-6 w-6 text-white" />
                         </button>
-                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg">
-                            <ScanIcon className="h-6 w-6 text-white" /> {/* Read Icon */}
-                        </button>
-                        <button
-                            className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                            onClick={toggleDrawingMode}
-                        >
-                            <PencilIcon className="h-6 w-6 text-white" /> {/* Draw Icon */}
-                        </button>
                     </div>
+                    <h2 className="text-lg pt-5 font-semibold">Read</h2>
+                    <div className="flex flex-col gap-4 mt-4">
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg">
+                            <ScanIcon className="h-6 w-6 text-white" />
+                        </button>
+                        <div>
+                            <h2 className="text-lg pt-5 font-semibold">Draw</h2>
+                            <div className="flex flex-col gap-4 mt-4">
+                                <button
+                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
+                                    onClick={pdfDrawFunctions.toggleDrawingMode}
+                                >
+                                    <PencilIcon className="h-6 w-6 text-white" />
+                                </button>
+                                <button
+                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
+                                    onClick={pdfDrawFunctions.undoLastBox}
+                                >
+                                    <Undo2 className="h-6 w-6 text-white" />
+                                </button>
+                                <button
+                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
+                                    onClick={pdfDrawFunctions.redoLastBox}
+                                >
+                                    <Redo2 className="h-6 w-6 text-white" />
+                                </button>
+                                <button
+                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
+                                    onClick={pdfDrawFunctions.resetBoundingBoxes}
+                                >
+                                    <RotateCcw className="h-6 w-6 text-white" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+
                 </div>
             </div>
 
@@ -194,7 +214,7 @@ const Main: React.FC = () => {
                         <div
                             className="w-full h-full bg-gray-800 text-gray-300 rounded-lg flex flex-col justify-center items-center relative cursor-pointer transition-all duration-300 hover:bg-gray-750"
                             onClick={triggerFileInput}
-                            onDrop={handleFileDrop}
+                            // onDrop={handleFileDrop}
                             onDragOver={(event) => event.preventDefault()}
                         >
                             <CIcon icon={cilCloudUpload} size="custom-size" className="w-16 h-16 text-cyan-500 mb-4" />
@@ -221,10 +241,15 @@ const Main: React.FC = () => {
                                             <PdfDraw
                                                 pdfFileUrl={pdfFile}
                                                 currentPage={currentPage}
+                                                setCurrentPage={setCurrentPage}
                                                 boundingData={boundingData}
                                                 zoomLevel={zoomLevel}
+                                                setZoomLevel={setZoomLevel}
                                                 isDrawing={isDrawing}
+                                                setIsDrawing={setIsDrawing}
+                                                setPdfDrawFunctions={setPdfDrawFunctions}
                                             />
+
                                         </div>
                                     )}
                                 </div>
@@ -247,6 +272,7 @@ const Main: React.FC = () => {
                 </div>
             </div>
         </div>
+
     );
 };
 

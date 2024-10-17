@@ -10,9 +10,6 @@ function PdfComp(props) {
   const imageRef = useRef();
   const [scale, setScale] = useState(0.8);
   const [objectColorMap, setObjectColorMap] = useState({});
-  // const zscale = zoomLevel; 
-
-
   useEffect(() => {
     if (props.boundingData && Object.keys(props.boundingData).length > 0 && jpgUrl) {
       drawBoundingBoxes();
@@ -54,7 +51,7 @@ function PdfComp(props) {
     }
   };
   const getBoundingBoxStyle = (boundingPolygon) => {
-    const scaleFactor = 72 * scale;
+    const scaleFactor = 72 * scale; // existing scaling factor
     const xValues = boundingPolygon.map(point => point.x);
     const yValues = boundingPolygon.map(point => point.y);
     const minX = Math.min(...xValues);
@@ -63,18 +60,19 @@ function PdfComp(props) {
     const maxY = Math.max(...yValues);
     const width = maxX - minX;
     const height = maxY - minY;
+    const imageWidth = imageRef.current?.clientWidth || 0;
+    const imageHeight = imageRef.current?.clientHeight || 0;
     return {
-      left: `${minX * scaleFactor}px`,
-      top: `${minY * scaleFactor}px`,
-      width: `${width * scaleFactor}px`,
-      height: `${height * scaleFactor}px`,
+      left: `${(minX * scaleFactor / imageWidth) * 100}%`, // Set left using percentage
+      top: `${(minY * scaleFactor / imageHeight) * 100}%`, // Set top using percentage
+      width: `${(width * scaleFactor / imageWidth) * 100}%`, // Set width using percentage
+      height: `${(height * scaleFactor / imageHeight) * 100}%`, // Set height using percentage
       zIndex: 10,
       position: 'absolute',
       border: '2px solid red',
       pointerEvents: 'none',
     };
   };
-
   const getRandomColor = () => {
     const r = Math.floor(Math.random() * 256);
     const g = Math.floor(Math.random() * 256);

@@ -4,40 +4,55 @@ import { TailSpin } from "react-loader-spinner";
 import { FaGithub, FaFacebook, FaMicrosoft } from "react-icons/fa";
 import { AiOutlineClose } from "react-icons/ai";
 import axios from 'axios';
-import { useRouter } from 'next/navigation'; 
+import { useRouter } from 'next/navigation';
 
 const SignUpPage: React.FC = () => {
     const [email, setEmail] = useState<string>("");
     const [password, setPassword] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>("");
+    const [showModal, setShowModal] = useState<boolean>(false); // Modal state
 
-    const router = useRouter(); 
+    const router = useRouter();
 
-    const handleSignUp = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            const response = await axios.post('http://localhost:3002/api/auth/signup', { email, password });
-            alert("Sign up successful! Please check your email for verification.");
-            // Redirect to login page after successful signup
-            router.push('/Authentication/Login');
-        } catch (err) {
-            if (axios.isAxiosError(err) && err.response) {
-                setError(err.response.data.message || 'An error occurred during sign up.');
-            } else {
-                setError('An unexpected error occurred.');
+            const response = await fetch("http://localhost:3002/api/user/signup", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Signup failed');
             }
-        } finally {
-            setLoading(false);
+
+            const data = await response.json();
+            localStorage.setItem('token', data.token);
+
+            // Show success modal on successful signup
+            setShowModal(true);
+        } catch (err: any) {
+            setError(err.message);
+            setLoading(false); // Stop loading when error occurs
         }
     };
 
+    const handleCloseModal = () => {
+        setShowModal(false);
+        router.push('/Authentication/Login'); // Redirect to login page after closing modal
+    };
+
     return (
-        <div className="h-full flex items-center justify-center bg-gray-900" 
-             style={{ backgroundImage: 'url(/image/bg1.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+        <div className="h-full flex items-center justify-center bg-gray-900"
+            style={{ backgroundImage: 'url(/image/bg1.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
             <form
                 className="relative w-full max-w-lg bg-white shadow-2xl rounded-lg p-8"
                 onSubmit={handleSignUp}
@@ -96,6 +111,22 @@ const SignUpPage: React.FC = () => {
                     </button>
                 </div>
             </form>
+
+            {/* Success Modal */}
+            {showModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-white rounded-lg p-6 w-1/3 text-center shadow-lg">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Sign Up Successful!</h2>
+                        <p className="text-gray-600 mb-6">You have successfully signed up. Welcome aboard!</p>
+                        <button
+                            className="bg-cyan-600 text-white px-4 py-2 rounded hover:bg-cyan-500 transition-all"
+                            onClick={handleCloseModal}
+                        >
+                            Continue to Login
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
