@@ -3,12 +3,15 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
-function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLevel, isDrawing, setZoomLevel, setIsDrawing, setPdfDrawFunctions }) {
+
+function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, setZoomLevel, isDrawing, setIsDrawing, setPdfDrawFunctions }) {
   const [numPages, setNumPages] = useState(0);
   const [jpgUrl, setJpgUrl] = useState(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const pdfCanvasRef = useRef();  // Canvas for PDF rendering
-  const drawingCanvasRef = useRef();  // Canvas for drawing bounding boxes
+  const [zoomLevel, setZoomLevelState] = useState(0.9); // Set initial zoom level to 0.9
+  const [zoomPercentage, setZoomPercentage] = useState(90); // Set initial zoom percentage to 90%
+  const [showZoomPopup, setShowZoomPopup] = useState(false);
+  const pdfCanvasRef = useRef();
+  const drawingCanvasRef = useRef();
   const imageRef = useRef();
   const boundingBoxesRef = useRef([]);
   const startCoords = useRef(null);
@@ -16,7 +19,7 @@ function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLe
 
   useEffect(() => {
     if (jpgUrl) {
-      drawBoundingBoxes(); // Draw bounding boxes whenever jpgUrl changes
+      drawBoundingBoxes();
     }
   }, [jpgUrl]);
 
@@ -25,13 +28,13 @@ function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLe
     convertPdfToJpg(currentPage + 1);
   }
 
-  const convertPdfToJpg = async (pageNumber) => {
+  const convertPdfToJpg = useCallback(async (pageNumber) => {
     const loadingTask = pdfjs.getDocument(pdfFileUrl);
     const pdf = await loadingTask.promise;
     const page = await pdf.getPage(pageNumber);
-    const viewport = page.getViewport({ scale: zoomLevel });  // Use zoomLevel as the scale
-    const canvas = pdfCanvasRef.current;  // Use the hidden canvas for PDF rendering
-    const context = canvas.getContext("2d");
+    const viewport = page.getViewport({ scale: zoomLevel });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const renderContext = {
@@ -41,32 +44,43 @@ function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLe
     await page.render(renderContext).promise;
     const jpgDataUrl = canvas.toDataURL("image/jpeg");
     setJpgUrl(jpgDataUrl);
-  };
+  }, [pdfFileUrl, zoomLevel]);
+
+  useEffect(() => {
+    convertPdfToJpg(currentPage + 1);
+  }, [currentPage, zoomLevel, convertPdfToJpg]);
 
   const handleNextPage = () => {
     if (currentPage < numPages - 1) {
-      const nextPage = currentPage + 1;
-      setCurrentPage(nextPage);
-      convertPdfToJpg(nextPage + 1);
+      setCurrentPage(prevPage => prevPage + 1);
     }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 0) {
-      const prevPage = currentPage - 1;
-      setCurrentPage(prevPage);
-      convertPdfToJpg(prevPage + 1);
+      setCurrentPage(prevPage => prevPage - 1);
     }
   };
+
   const handleZoomIn = useCallback(() => {
-    setZoomLevel(prevZoom => Math.min(prevZoom + 0.1, 3));
-    convertPdfToJpg(currentPage + 1);  // Update PDF view when zooming
-  }, [setZoomLevel, currentPage]);
+    setZoomLevelState(prevZoom => {
+      const newZoom = Math.min(prevZoom + 0.1, 3);
+      setZoomPercentage(Math.round(newZoom * 100)); // Update zoom percentage
+      setShowZoomPopup(true);
+      setTimeout(() => setShowZoomPopup(false), 2000); // Hide popup after 2 seconds
+      return newZoom;
+    });
+  }, []);
 
   const handleZoomOut = useCallback(() => {
-    setZoomLevel(prevZoom => Math.max(prevZoom - 0.1, 0.5));
-    convertPdfToJpg(currentPage + 1);  // Update PDF view when zooming out
-  }, [setZoomLevel, currentPage]);
+    setZoomLevelState(prevZoom => {
+      const newZoom = Math.max(prevZoom - 0.1, 0.5);
+      setZoomPercentage(Math.round(newZoom * 100)); // Update zoom percentage
+      setShowZoomPopup(true);
+      setTimeout(() => setShowZoomPopup(false), 2000); // Hide popup after 2 seconds
+      return newZoom;
+    });
+  }, []);
 
   const toggleDrawingMode = useCallback(() => {
     setIsDrawing(prev => !prev);
@@ -84,23 +98,30 @@ function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLe
     });
   }, [handleZoomIn, handleZoomOut, toggleDrawingMode, setPdfDrawFunctions]);
 
-  const handleMouseZoom = (event) => {
+ const handleMouseZoom = (event) => {
     const delta = event.deltaY < 0 ? 0.1 : -0.1;
-    setZoomLevel(prevZoom => Math.min(Math.max(prevZoom + delta, 0.5), 3));
-    convertPdfToJpg(currentPage + 1);
+    setZoomLevelState(prevZoom => {
+      const newZoom = Math.min(Math.max(prevZoom + delta, 0.5), 3);
+      setZoomPercentage(Math.round(newZoom * 100)); // Update zoom percentage
+      setShowZoomPopup(true);
+      setTimeout(() => setShowZoomPopup(false), 2000); // Hide popup after 2 seconds
+      return newZoom;
+    });
   };
 
-  const drawBoundingBoxes = () => {
+  const drawBoundingBoxes = useCallback(() => {
     const drawingCanvas = drawingCanvasRef.current;
+    if (!drawingCanvas) return;
+
     const context = drawingCanvas.getContext("2d");
-    context.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);  // Clear previous drawings
+    context.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
 
     boundingBoxesRef.current.forEach((box) => {
       context.strokeStyle = 'red';
       context.lineWidth = 2;
-      context.strokeRect(box.left, box.top, box.width, box.height);
+      context.strokeRect(box.left * zoomLevel, box.top * zoomLevel, box.width * zoomLevel, box.height * zoomLevel);
     });
-  };
+  }, [zoomLevel]);
 
   const startDrawing = (event) => {
     if (!isDrawing) return;
@@ -116,7 +137,7 @@ function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLe
     document.addEventListener('mouseup', stopDrawing);
   };
 
-  const draw = (event) => {
+  const draw = useCallback((event) => {
     if (!startCoords.current) return;
 
     const drawingCanvas = drawingCanvasRef.current;
@@ -137,52 +158,59 @@ function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLe
     context.strokeStyle = 'red';
     context.lineWidth = 2;
     context.strokeRect(left * zoomLevel, top * zoomLevel, width * zoomLevel, height * zoomLevel);
-  };
+  }, [zoomLevel, drawBoundingBoxes]);
 
-  const stopDrawing = (event) => {
+  const stopDrawing = useCallback((event) => {
     document.removeEventListener('mousemove', draw);
     document.removeEventListener('mouseup', stopDrawing);
-
+  
     const drawingCanvas = drawingCanvasRef.current;
     const canvasRect = drawingCanvas.getBoundingClientRect();
-
+  
     const endX = (event.clientX - canvasRect.left) / zoomLevel;
     const endY = (event.clientY - canvasRect.top) / zoomLevel;
-
+  
     const left = Math.min(startCoords.current.x, endX);
     const top = Math.min(startCoords.current.y, endY);
     const width = Math.abs(startCoords.current.x - endX);
     const height = Math.abs(startCoords.current.y - endY);
-
+  
+    // Log the coordinates and dimensions of the bounding box
+    console.log("Added bounding box:", { left, top, width, height });  
     boundingBoxesRef.current.push({ left, top, width, height });
-
+  
     drawBoundingBoxes();
     startCoords.current = null;
-  };
+  }, [zoomLevel, draw, drawBoundingBoxes]);
 
   const undoLastBox = () => {
-    const lastBox = boundingBoxesRef.current.pop();  // Remove the last bounding box
+    const lastBox = boundingBoxesRef.current.pop();
     if (lastBox) {
-      redoStackRef.current.push(lastBox); // Add the undone box to the redo stack
+      redoStackRef.current.push(lastBox);
     }
-    drawBoundingBoxes();  // Redraw remaining bounding boxes
+    drawBoundingBoxes();
   };
 
   const redoLastBox = () => {
-    const lastRedoBox = redoStackRef.current.pop(); // Remove the last box from redo stack
+    const lastRedoBox = redoStackRef.current.pop();
     if (lastRedoBox) {
-      boundingBoxesRef.current.push(lastRedoBox); // Restore it to the bounding boxes
-      drawBoundingBoxes(); // Redraw all bounding boxes
+      boundingBoxesRef.current.push(lastRedoBox);
+      drawBoundingBoxes();
     }
   };
+
   const resetBoundingBoxes = () => {
-    boundingBoxesRef.current = [];  // Clear all bounding boxes
-    drawBoundingBoxes();  // Clear the canvas
+    boundingBoxesRef.current = [];
+    drawBoundingBoxes();
   };
 
   return (
     <div className="flex flex-col justify-center items-center h-full w-full">
-      <canvas ref={pdfCanvasRef} className="hidden" />
+      {showZoomPopup && (
+        <div className="absolute top-2 items-center bg-gray-300 text-white p-2 rounded-md shadow-lg">
+          Zoom: {zoomPercentage}%
+        </div>
+      )}
       <div className="relative flex flex-col items-center justify-center w-full h-full overflow-hidden">
         <div className="flex justify-between items-center w-full h-full">
           <button
@@ -193,40 +221,27 @@ function PdfDraw({ pdfFileUrl, currentPage, setCurrentPage, boundingData, zoomLe
             <ChevronLeft />
           </button>
           <div
-            className="relative flex items-center justify-center w-auto h-auto"
+            className="relative flex items-center justify-center w-full h-full overflow-hidden"
             onWheel={handleMouseZoom}
             onMouseDown={startDrawing}
             style={{ cursor: isDrawing ? 'crosshair' : 'default' }}
           >
-            {jpgUrl ? (
+            {jpgUrl && (
               <>
                 <img
-                  ref={imageRef}
                   src={jpgUrl}
-                  alt={`PDF page ${currentPage + 1} as JPG`}
-                  className="w-full h-full"
+                  alt={`Page ${currentPage + 1}`}
+                  ref={imageRef}
                   style={{ transform: `scale(${zoomLevel})` }}
+                  className="absolute"
                 />
                 <canvas
                   ref={drawingCanvasRef}
-                  className="absolute top-0 left-0"
-                  width={imageRef.current ? imageRef.current.width * zoomLevel : 0}
-                  height={imageRef.current ? imageRef.current.height * zoomLevel : 0}
+                  className="absolute"
+                  width={imageRef.current?.naturalWidth * zoomLevel}
+                  height={imageRef.current?.naturalHeight * zoomLevel}
                 />
               </>
-            ) : (
-              <Document
-                file={pdfFileUrl}
-                onLoadSuccess={onDocumentLoadSuccess}
-                className="flex items-center justify-center h-full w-full"
-              >
-                <Page
-                  pageNumber={currentPage + 1}
-                  renderMode="svg"
-                  width={600}
-                  renderTextLayer={false}
-                />
-              </Document>
             )}
           </div>
           <button

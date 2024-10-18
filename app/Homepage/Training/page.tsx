@@ -29,6 +29,7 @@ const Main: React.FC = () => {
     const [boundingData, setBoundingData] = useState<Record<string, any>>({});
     const [zoomLevel, setZoomLevel] = useState(1.0);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [isDrawingModeOn, setIsDrawingModeOn] = useState<boolean>(false);
     const [pdfDrawFunctions, setPdfDrawFunctions] = useState({
         handleZoomIn: () => { },
         handleZoomOut: () => { },
@@ -47,6 +48,9 @@ const Main: React.FC = () => {
         setIsModalOpen(false);
     };
 
+    const handleDrawButtonClick = () => {
+        setIsDrawingModeOn((prev) => !prev); // Toggle drawing mode
+    };
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
             const file = event.target.files[0];
@@ -158,57 +162,59 @@ const Main: React.FC = () => {
                 <div className="p-4 text-center">
                     <h2 className="text-lg pt-5 font-semibold">Tools</h2>
                     <div className="flex flex-col gap-4 mt-4">
-                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
+                        {/* Zoom In Button */}
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 hover:scale-110 transition-transform duration-300 ease-in-out rounded-lg"
                             onClick={pdfDrawFunctions.handleZoomIn}>
                             <ZoomInIcon className="h-6 w-6 text-white" />
                         </button>
-                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                            onClick={pdfDrawFunctions.handleZoomOut} >
+                        {/* Zoom Out Button */}
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 hover:scale-110 transition-transform duration-300 ease-in-out rounded-lg"
+                            onClick={pdfDrawFunctions.handleZoomOut}>
                             <ZoomOutIcon className="h-6 w-6 text-white" />
                         </button>
                     </div>
                     <h2 className="text-lg pt-5 font-semibold">Read</h2>
                     <div className="flex flex-col gap-4 mt-4">
-                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg">
+                        {/* Scan Button */}
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 hover:scale-110 transition-transform duration-300 ease-in-out rounded-lg">
                             <ScanIcon className="h-6 w-6 text-white" />
                         </button>
-                        <div>
-                            <h2 className="text-lg pt-5 font-semibold">Draw</h2>
-                            <div className="flex flex-col gap-4 mt-4">
-                                <button
-                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                                    onClick={pdfDrawFunctions.toggleDrawingMode}
-                                >
-                                    <PencilIcon className="h-6 w-6 text-white" />
-                                </button>
-                                <button
-                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                                    onClick={pdfDrawFunctions.undoLastBox}
-                                >
-                                    <Undo2 className="h-6 w-6 text-white" />
-                                </button>
-                                <button
-                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                                    onClick={pdfDrawFunctions.redoLastBox}
-                                >
-                                    <Redo2 className="h-6 w-6 text-white" />
-                                </button>
-                                <button
-                                    className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 rounded-lg"
-                                    onClick={pdfDrawFunctions.resetBoundingBoxes}
-                                >
-                                    <RotateCcw className="h-6 w-6 text-white" />
-                                </button>
-                            </div>
-                        </div>
                     </div>
-
-
+                    <h2 className="text-lg pt-5 font-semibold">Draw</h2>
+                    <div className="flex flex-col gap-4 mt-4">
+                        {/* Draw Button */}
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 hover:scale-110 transition-transform duration-300 ease-in-out rounded-lg"
+                            onClick={pdfDrawFunctions.toggleDrawingMode}>
+                            <PencilIcon className="h-6 w-6 text-white" />
+                        </button>
+                        {isDrawingModeOn && <p>Draw Mode is ON</p>}
+                        {/* Undo Button */}
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 hover:scale-110 transition-transform duration-300 ease-in-out rounded-lg"
+                            onClick={pdfDrawFunctions.undoLastBox}>
+                            <Undo2 className="h-6 w-6 text-white" />
+                        </button>
+                        {/* Redo Button */}
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 hover:scale-110 transition-transform duration-300 ease-in-out rounded-lg"
+                            onClick={pdfDrawFunctions.redoLastBox}>
+                            <Redo2 className="h-6 w-6 text-white" />
+                        </button>
+                        {/* Reset Button */}
+                        <button className="flex justify-center items-center w-16 h-16 bg-gray-500 hover:bg-gray-600 hover:scale-110 transition-transform duration-300 ease-in-out rounded-lg"
+                            onClick={pdfDrawFunctions.resetBoundingBoxes}>
+                            <RotateCcw className="h-6 w-6 text-white" />
+                        </button>
+                    </div>
                 </div>
+
             </div>
 
             {/* Center Section */}
             <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-lg shadow-xl h-[85vh] w-[45%] m-2 relative overflow-hidden">
+                {isDrawingModeOn && (
+                    <div className="absolute top-0 left-0 bg-yellow-500 text-black px-2 py-1 rounded-br-lg">
+                        Draw Mode On
+                    </div>
+                )}
                 <div className="flex flex-col justify-center items-center h-full w-full p-4">
                     {!isFileUploaded ? (
                         <div
@@ -243,7 +249,6 @@ const Main: React.FC = () => {
                                                 currentPage={currentPage}
                                                 setCurrentPage={setCurrentPage}
                                                 boundingData={boundingData}
-                                                zoomLevel={zoomLevel}
                                                 setZoomLevel={setZoomLevel}
                                                 isDrawing={isDrawing}
                                                 setIsDrawing={setIsDrawing}
