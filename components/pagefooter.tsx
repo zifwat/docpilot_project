@@ -5,7 +5,7 @@ import Logo from '@/public/logo/iai-logo-black.png';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-gradient-to-r from-red-800 from-20% via-cyan-400 via-40% to-cyan-500 to-90% py-1 flex items-center justify-center sticky bottom-0 z-30">
+    <footer className="bg-gradient-to-b from-[#e3eced] via-[#e3eced] to-[#125564] shadow-lg border-b-2">
       <div className="flex items-center justify-center">
         <p className='px-3 text-black text-sm font-semibold'>Property of</p>
         <Link className='flex' href="/">

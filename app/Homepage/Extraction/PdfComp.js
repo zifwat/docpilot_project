@@ -117,7 +117,7 @@ function PdfComp(props) {
           <button
             onClick={handlePrevPage}
             disabled={currentPage === 0}
-            className="text-white rounded-md hover:bg-gray-500 transition-colors duration-200 flex items-center justify-center ml-4 h-20 w-20"
+            className="text-teal-700 rounded-md hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center ml-4 h-20 w-20"
           >
             <ChevronLeft />
           </button>
@@ -151,11 +151,11 @@ function PdfComp(props) {
           <button
             onClick={handleNextPage}
             disabled={currentPage === numPages - 1}
-            className="text-white rounded-md hover:bg-gray-500 transition-colors duration-200 flex items-center justify-center mr-4 h-20 w-20">
+            className="text-teal-700 rounded-md hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center mr-4 h-20 w-20">
             <ChevronRight />
           </button>
         </div>
-        <div className="m-5 text-white">
+        <div className="m-5 text-teal-700">
           <span>
             Page {currentPage + 1} of {numPages}
           </span>
