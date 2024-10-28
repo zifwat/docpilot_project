@@ -156,9 +156,9 @@ const Main: React.FC = () => {
         setZoomLevel(1);
     };
     return (
-        <div className="flex flex-row justify-center gap-4 text-white h-[90.2vh] p-4">
+        <div className="flex flex-row justify-center gap-4 text-white h-[87vh] p-4">
             {/* Left Section */}
-            <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-lg shadow-xl h-[85vh] m-2">
+            <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-lg shadow-xl h-[87vh] m-2">
                 <div className="p-4 text-center">
                     <h2 className="text-lg pt-5 font-semibold">Tools</h2>
                     <div className="flex flex-col gap-4 mt-4">
@@ -254,7 +254,6 @@ const Main: React.FC = () => {
                                                 setIsDrawing={setIsDrawing}
                                                 setPdfDrawFunctions={setPdfDrawFunctions}
                                             />
-
                                         </div>
                                     )}
                                 </div>

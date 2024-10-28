@@ -189,22 +189,23 @@ const Main: React.FC = () => {
     return displayItems.join(", ") + (additionalCount > 0 ? `, and ${additionalCount} more` : "");
   };
   return (
-    <div className="flex flex-row justify-center gap-4 text-white h-[85vh] m-2">
-      <div className="flex flex-col bg-gray-900 border border-gray-700 rounded-lg shadow-xl h-[85vh] w-[40%] m-2 relative overflow-hidden">
-        <div className="flex flex-col justify-center items-center h-full w-full p-4 ">
+    <div className="flex flex-row gap-4 m-2">
+      <div className="flex flex-col gap-4 h-[84vh] w-[40%] m-2">
+        <span className="flex pl-2 justiy-start items-start font-bold text-lg mt-2 text-black">File Extracted</span>
+        <div className="w-full h-full border-4 border-teal-700 border-dotted text-gray-300 rounded-lg flex flex-col justify-center items-center relative cursor-pointer transition-all duration-300 hover:bg-gray-750 ">
           {!isFileUploaded ? (
             <div
-              className="w-full h-full bg-gray-800 text-gray-300 rounded-lg flex flex-col justify-center items-center relative cursor-pointer transition-all duration-300 hover:bg-gray-750"
+              className="w-full h-full text-gray-300 rounded-lg flex flex-col justify-center items-center relative cursor-pointer transition-all duration-300 hover:bg-gray-750"
               onClick={triggerFileInput}
               onDrop={handleFileDrop}
               onDragOver={(event) => event.preventDefault()}>
-              <CIcon icon={cilCloudUpload} size="custom-size" className="w-16 h-16 text-cyan-500 mb-4" />
-              <p className="text-center text-lg font-semibold mb-2">Upload Your File</p>
-              <p className="text-center text-sm text-gray-400">(.PDF only)</p>
+              <CIcon icon={cilCloudUpload} size="custom-size" className="w-16 h-16 items-center text-[#4eadaf] mb-4" />
+              <p className="text-center text-lg font-semibold mb-2 text-[#4eadaf]">Upload Your File</p>
+              <p className="text-center text-sm text-[#4eadaf]">(.PDF only)</p>
               <input type="file" id="file-upload" onChange={handleFileChange} className="hidden" accept=".pdf" />
             </div>
           ) : (
-            <div className="rounded-lg bg-gray-800 h-full w-full ">
+            <div className="rounded-lg bg-transparent h-full w-full ">
               <div className="grid grid-rows-[auto_1fr_auto] grid-cols-[auto_1fr_auto] h-full w-full">
                 <div className="col-span-3 flex justify-end p-2">
                   {selectedFile && (
@@ -230,20 +231,83 @@ const Main: React.FC = () => {
             </div>
           )}
         </div>
-      </div >
-      <div className="flex flex-col items-center bg-gray-900 w-[60%] h-[85vh] m-2">
-        <div className="w-full h-[70vh]">
+      </div>
+      <div className="flex flex-col gap-4 text-white h-[84vh] w-[60%] m-2">
+        <span className="flex pl-2 justiy-start items-start font-bold text-lg mt-2 text-black">File Extracted</span>
+        <div className="flex flex-rol gap-4 w-full">
+          <Menu as="div" className="relative w-full">
+            <Menu.Button className="bg-[#4eadaf] shadow-lg text-white px-4 py-2 rounded flex items-center justify-between hover:bg-teal-700 w-full cursor-pointer">
+              <span className="flex-1 pl-[29px] text-center">{selectedFileType}</span>
+              <ChevronDownIcon className="w-5 h-5 ml-2" />
+            </Menu.Button>
+            <Menu.Items className="absolute right-0 top-full mb-2 w-48 origin-top-right shadow-lg bg-[#4eadaf] rounded">
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => handleFileTypeChange("Business Card")}
+                    className={`block px-4 py-2  bg-white border w-full text-black text-left ${active ? "bg-[#d2e0e2]" : ""} cursor-pointer`}>
+                    Business Card
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => handleFileTypeChange("Resume")}
+                    className={`block px-4 py-2 bg-white border w-full text-black text-left ${active ? "bg-[#d2e0e2]" : ""} cursor-pointer`}>
+                    Resume
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => handleFileTypeChange("Invoice")}
+                    className={`block px-4 py-2 bg-white border w-full text-black text-left ${active ? "bg-[#d2e0e2]" : ""} cursor-pointer`}>
+                    Invoice
+                  </button>
+                )}
+              </Menu.Item>
+            </Menu.Items>
+          </Menu>
+          <CButton
+            className="bg-[#4eadaf] text-white w-full py-2 rounded hover:bg-teal-700 shadow-lg"
+            onClick={handleExtract}>
+            Extract
+          </CButton>
+          {isModalOpen && (
+            <div className="fixed top-0 left-0 w-full h-full bg-[#d2e0e2] bg-opacity-50 flex justify-center items-center">
+              <div className="bg-white rounded p-6 w-60">
+                <h2 className="text-lg text-black font-bold mb-2">{error ? "Error" : "Please select a file to extract"}</h2>
+                {error ? (
+                  <p className='pb-3' style={{ color: "black" }}>
+                    {error === "Please select a file" ? error : error === "Please select a file type" ? error : "Please select a file type"}
+                  </p>
+                ) : (
+                  <p className='text-black'>Please select a file to extract</p>
+                )}
+                <button
+                  className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-900"
+                  onClick={handleModalClose}>
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col bg-[#d2e0e2] rounded-lg shadow-xl h-[85vh] w-full overflow-hidden">
+
           {loading ? (
             <div className="flex justify-center items-center h-full">
-              <TailSpin height="50" width="50" color="#00BFFF" ariaLabel="loading" />
+              <TailSpin height="50" width="50" color="#4eadaf" ariaLabel="loading" />
             </div>
           ) : Object.keys(extractedData).length === 0 ? (
-            <p className="flex justify-center items-center p-4 h-full">No file uploaded.</p>
+            <p className="flex justify-center items-center text-teal-700 p-4 h-full">No file uploaded.</p>
           ) : (
-            <div className="p-4 border border-gray-600 rounded bg-gray-900 h-full overflow-y-scroll">
+            <div className="p-4 border border-gray-600 bg-white h-full overflow-y-scroll">
               <div className="space-y-6">
                 {Object.entries(groupDataByKey(extractedData)).map(([key, values]) => (
-                  <div key={key} className="flex items-center p-2 border border-gray-600 rounded bg-gray-800">
+                  <div key={key} className="flex items-center p-2 border text-black border-gray-600 rounded bg-[#d2e0e2]">
                     <div className="flex-shrink-0 w-1/3">
                       <h3 className="flex font-bold text-lg whitespace-normal break-words overflow-hidden">
                         {key}
@@ -275,69 +339,9 @@ const Main: React.FC = () => {
             </div>
           )}
         </div>
-        <div className="flex flex-col mt-5 w-full p-2">
-          <Menu as="div" className="relative w-full">
-            <Menu.Button className="bg-cyan-600 shadow-lg text-white px-4 py-2 rounded flex items-center justify-between hover:bg-cyan-500 w-full cursor-pointer">
-              <span className="flex-1 pl-[29px] text-center">{selectedFileType}</span>
-              <ChevronDownIcon className="w-5 h-5 ml-2" />
-            </Menu.Button>
-            <Menu.Items className="absolute right-0 bottom-full mb-2 w-48 origin-bottom-right shadow-lg bg-gray-800 border border-gray-600 rounded">
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={() => handleFileTypeChange("Business Card")}
-                    className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}>
-                    Business Card
-                  </button>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={() => handleFileTypeChange("Resume")}
-                    className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}>
-                    Resume
-                  </button>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={() => handleFileTypeChange("Invoice")}
-                    className={`block px-4 py-2 text-white w-full text-left ${active ? "bg-cyan-700" : ""} cursor-pointer`}>
-                    Invoice
-                  </button>
-                )}
-              </Menu.Item>
-            </Menu.Items>
-          </Menu>
-          <CButton
-            className="bg-cyan-600 text-white w-full py-2 mt-4 rounded hover:bg-cyan-500 shadow-lg"
-            onClick={handleExtract}>
-            Extract
-          </CButton>
-          {isModalOpen && (
-            <div className="fixed top-0 left-0 w-full h-full bg-gray-900 bg-opacity-50 flex justify-center items-center">
-              <div className="bg-white rounded p-6 w-60">
-                <h2 className="text-lg text-black font-bold mb-2">{error ? "Error" : "Please select a file to extract"}</h2>
-                {error ? (
-                  <p className='pb-3' style={{ color: "black" }}>
-                    {error === "Please select a file" ? error : error === "Please select a file type" ? error : "Please select a file type"}
-                  </p>
-                ) : (
-                  <p className='text-black'>Please select a file to extract</p>
-                )}
-                <button
-                  className="bg-red-600 text-white px-5 py-2 rounded hover:bg-red-900"
-                  onClick={handleModalClose}>
-                  Close
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
+
       </div>
-    </div >
+    </div>
   );
 };
 export default Main;
